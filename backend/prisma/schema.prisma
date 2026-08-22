@@ -1,0 +1,433 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  Active
+  Inactive
+  Locked
+}
+
+enum CustomerStatus {
+  Active
+  Dormant
+  Delinquent
+  Closed
+  Blacklisted
+}
+
+enum InterestType {
+  Flat
+  DecliningBalance
+  ReducingBalance
+}
+
+enum Frequency {
+  Weekly
+  Biweekly
+  Monthly
+  Quarterly
+}
+
+enum LoanApplicationStatus {
+  Draft
+  Submitted
+  UnderReview
+  Approved
+  Rejected
+  Returned
+  Disbursed
+  Closed
+  Defaulted
+}
+
+enum LoanStatus {
+  Approved
+  Active
+  Closed
+  Defaulted
+  WrittenOff
+}
+
+enum PaymentMethod {
+  Cash
+  BankTransfer
+  MobileMoney
+  Cheque
+  Other
+}
+
+enum NotificationEventType {
+  CustomerRegistration
+  LoanApproval
+  LoanRejection
+  Disbursement
+  PaymentReceived
+  PaymentReminder
+  OverdueNotice
+  PasswordReset
+  AccountNotice
+}
+
+enum NotificationStatus {
+  Pending
+  Sent
+  Failed
+}
+
+enum RecoveryStatus {
+  Open
+  InProgress
+  Resolved
+  Escalated
+}
+
+enum DecisionType {
+  Approved
+  Rejected
+  Returned
+}
+
+model Role {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  description     String?
+  canManageUsers  Boolean @default(false)
+  canApproveLoans Boolean @default(false)
+  canPostPayments Boolean @default(false)
+  canViewAudit    Boolean @default(false)
+  users           User[]
+}
+
+model Branch {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  name          String
+  location      String?
+  isActive      Boolean   @default(true)
+  users         User[]
+  customers     Customer[]
+  loanProducts  LoanProduct[]
+  loanApplications LoanApplication[]
+  loans         Loan[]
+  loanPayments  LoanPayment[]
+  incomeRecords IncomeRecord[]
+  expenseRecords ExpenseRecord[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+model User {
+  id              String           @id @default(uuid())
+  username        String           @unique
+  email           String           @unique
+  passwordHash    String
+  fullName        String
+  role            Role             @relation(fields: [roleId], references: [id])
+  roleId          String
+  branch          Branch?          @relation(fields: [branchId], references: [id])
+  branchId        String?
+  status          UserStatus       @default(Active)
+  lastLoginAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  loanApplications LoanApplication[]
+  payments        LoanPayment[]
+  uploadedDocuments CustomerDocument[]
+  assignedReviews LoanApplication[] @relation("ReviewerAssignments")
+  incomeRecords   IncomeRecord[]
+  expenseRecords  ExpenseRecord[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  approvalRecords ApprovalRecord[]
+  recoveryActions RecoveryAction[]
+}
+
+model Customer {
+  id             String             @id @default(uuid())
+  customerId     String             @unique
+  branch         Branch             @relation(fields: [branchId], references: [id])
+  branchId       String
+  firstName      String
+  lastName       String
+  otherNames     String?
+  dateOfBirth    DateTime?
+  gender         String?
+  idType         String?
+  idNumber       String?
+  phone          String?
+  email          String?
+  address        String?
+  employmentType String?
+  employerName   String?
+  businessName   String?
+  incomeSource   String?
+  status         CustomerStatus     @default(Active)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  documents      CustomerDocument[]
+  guarantors     Guarantor[]
+  nextOfKin      NextOfKin[]
+  applications   LoanApplication[]
+  loans          Loan[]
+  notifications  Notification[]
+}
+
+model CustomerDocument {
+  id          String   @id @default(uuid())
+  customer    Customer @relation(fields: [customerId], references: [id])
+  customerId  String
+  documentType String
+  filePath    String
+  uploadedBy  User     @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  uploadedAt  DateTime @default(now())
+}
+
+model Guarantor {
+  id          String   @id @default(uuid())
+  customer    Customer @relation(fields: [customerId], references: [id])
+  customerId  String
+  name        String
+  relationship String?
+  phone       String?
+  address     String?
+  idType      String?
+  idNumber    String?
+  createdAt   DateTime @default(now())
+}
+
+model NextOfKin {
+  id          String   @id @default(uuid())
+  customer    Customer @relation(fields: [customerId], references: [id])
+  customerId  String
+  name        String
+  relationship String?
+  phone       String?
+  address     String?
+  createdAt   DateTime @default(now())
+}
+
+model LoanProduct {
+  id                  String             @id @default(uuid())
+  name                String             @unique
+  description         String?
+  branch              Branch             @relation(fields: [branchId], references: [id])
+  branchId            String
+  interestRate        Float
+  interestType        InterestType
+  repaymentFrequency  Frequency
+  minTenorMonths      Int
+  maxTenorMonths      Int
+  minAmount           Float
+  maxAmount           Float
+  processingFeePercent Float
+  processingFeeFixed  Float
+  lateFeeRule         String
+  gracePeriodDays     Int
+  lateFeeAmount       Float
+  approvalThreshold   Float
+  status              String             @default("Active")
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  applications        LoanApplication[]
+  loans               Loan[]
+}
+
+model LoanApplication {
+  id                    String                 @id @default(uuid())
+  applicationNumber     String                 @unique
+  customer              Customer               @relation(fields: [customerId], references: [id])
+  customerId            String
+  branch                Branch                 @relation(fields: [branchId], references: [id])
+  branchId              String
+  loanProduct           LoanProduct            @relation(fields: [loanProductId], references: [id])
+  loanProductId         String
+  requestedAmount       Float
+  requestedTenorMonths  Int
+  requestedFrequency    Frequency
+  interestRate          Float
+  processingFee         Float
+  purpose               String?
+  status                LoanApplicationStatus @default(Draft)
+  createdBy             User                   @relation(fields: [createdById], references: [id])
+  createdById           String
+  assignedReviewer      User?                  @relation("ReviewerAssignments", fields: [assignedReviewerId], references: [id])
+  assignedReviewerId    String?
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  approvalRecords       ApprovalRecord[]
+  loan                  Loan?
+}
+
+model ApprovalRecord {
+  id                String       @id @default(uuid())
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id])
+  loanApplicationId String
+  approver          User         @relation(fields: [approverId], references: [id])
+  approverId        String
+  decision          DecisionType
+  comment           String?
+  decisionAt        DateTime     @default(now())
+  authorityLevel    String?
+}
+
+model Loan {
+  id                 String             @id @default(uuid())
+  loanNumber         String             @unique
+  loanApplication    LoanApplication    @relation(fields: [loanApplicationId], references: [id])
+  loanApplicationId  String             @unique
+  customer           Customer           @relation(fields: [customerId], references: [id])
+  customerId         String
+  branch             Branch             @relation(fields: [branchId], references: [id])
+  branchId           String
+  loanProduct        LoanProduct        @relation(fields: [loanProductId], references: [id])
+  loanProductId      String
+  principalAmount    Float
+  disbursedAmount    Float
+  disbursementDate   DateTime?
+  maturityDate       DateTime?
+  interestRate       Float
+  repaymentFrequency Frequency
+  status             LoanStatus         @default(Approved)
+  outstandingPrincipal Float
+  outstandingInterest Float
+  outstandingFees    Float
+  outstandingPenalties Float
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  scheduleEntries    LoanRepaymentSchedule[]
+  payments           LoanPayment[]
+  recoveryActions    RecoveryAction[]
+}
+
+model LoanRepaymentSchedule {
+  id                String    @id @default(uuid())
+  loan              Loan      @relation(fields: [loanId], references: [id])
+  loanId            String
+  installmentNumber Int
+  dueDate           DateTime
+  principalDue      Float
+  interestDue       Float
+  feesDue           Float
+  penaltiesDue      Float
+  totalDue          Float
+  amountPaid        Float      @default(0)
+  status            String     @default("Pending")
+  updatedAt         DateTime   @updatedAt
+}
+
+model LoanPayment {
+  id              String        @id @default(uuid())
+  loan            Loan          @relation(fields: [loanId], references: [id])
+  loanId          String
+  paymentDate     DateTime
+  amount          Float
+  method          PaymentMethod
+  referenceNumber String?
+  postedBy        User          @relation(fields: [postedById], references: [id])
+  postedById      String
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  branchId        String
+  principalPaid   Float
+  interestPaid    Float
+  feesPaid        Float
+  penaltiesPaid   Float
+  overpaymentAmount Float  @default(0)
+  receiptNumber   String?
+  createdAt       DateTime      @default(now())
+}
+
+model IncomeRecord {
+  id            String   @id @default(uuid())
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  branchId      String
+  recordedBy    User     @relation(fields: [recordedById], references: [id])
+  recordedById  String
+  category      String
+  amount        Float
+  date          DateTime
+  description   String?
+  referenceNumber String?
+  createdAt     DateTime @default(now())
+}
+
+model ExpenseRecord {
+  id            String   @id @default(uuid())
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  branchId      String
+  recordedBy    User     @relation(fields: [recordedById], references: [id])
+  recordedById  String
+  category      String
+  amount        Float
+  date          DateTime
+  description   String?
+  referenceNumber String?
+  createdAt     DateTime @default(now())
+}
+
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  eventType   NotificationEventType
+  templateBody String
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  notifications Notification[]
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  customerId  String?
+  user        User?     @relation(fields: [userId], references: [id])
+  userId      String?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  branchId    String?
+  template    NotificationTemplate? @relation(fields: [templateId], references: [id])
+  templateId  String?
+  eventType   NotificationEventType
+  targetPhone String
+  message     String
+  status      NotificationStatus @default(Pending)
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+  branchId   String?
+  entityType String
+  entityId   String
+  action     String
+  timestamp  DateTime @default(now())
+  details    Json
+  ipAddress  String?
+  userAgent  String?
+}
+
+model RecoveryAction {
+  id               String        @id @default(uuid())
+  loan             Loan          @relation(fields: [loanId], references: [id])
+  loanId           String
+  recoveryOfficer  User          @relation(fields: [recoveryOfficerId], references: [id])
+  recoveryOfficerId String
+  actionType       String
+  notes            String?
+  actionDate       DateTime
+  nextFollowUpDate DateTime?
+  status           RecoveryStatus @default(Open)
+  createdAt        DateTime       @default(now())
+}
