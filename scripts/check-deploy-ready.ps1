@@ -43,8 +43,22 @@ Assert-FileContains `
   -Pattern 'https://microfinancelive\.netlify\.app,https://microfinanceapplive\.netlify\.app' `
   -Message 'render.yaml must allow both Netlify frontend domains.'
 
-$oldUrlMatches = & rg -n 'microfinance-sooty\.vercel\.app' $frontend $repoRoot\README.md $repoRoot\DEPLOYMENT.md 2>$null
-if ($LASTEXITCODE -eq 0) {
+$searchTargets = @(
+  Get-ChildItem -LiteralPath (Join-Path $frontend 'src') -Recurse -File
+  Get-Item -LiteralPath (Join-Path $frontend '.env.example')
+  Get-Item -LiteralPath (Join-Path $frontend '.env.production')
+  Get-Item -LiteralPath (Join-Path $frontend 'netlify.toml')
+  Get-Item -LiteralPath (Join-Path $frontend 'vercel.json')
+  Get-Item -LiteralPath (Join-Path $frontend 'public/_redirects')
+  Get-Item -LiteralPath (Join-Path $repoRoot 'README.md')
+  Get-Item -LiteralPath (Join-Path $repoRoot 'DEPLOYMENT.md')
+)
+
+$oldUrlMatches = $searchTargets |
+  Select-String -Pattern 'microfinance-sooty\.vercel\.app' |
+  ForEach-Object { "$($_.Path):$($_.LineNumber):$($_.Line)" }
+
+if ($oldUrlMatches) {
   $allowedOldUrlNotes = $oldUrlMatches | Where-Object {
     $_ -match 'DEPLOYMENT\.md|README\.md|frontend[\\/]+src[\\/]+api\.js'
   }
