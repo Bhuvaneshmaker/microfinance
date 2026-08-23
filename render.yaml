@@ -5,8 +5,7 @@ services:
     plan: free
     region: singapore
     rootDir: backend
-    buildCommand: npm ci && npm run build
-    preDeployCommand: npm run prisma:migrate:deploy && npm run prisma:seed
+    buildCommand: npm ci && npm run build && npm run prisma:migrate:deploy && npm run prisma:seed
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
