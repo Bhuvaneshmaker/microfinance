@@ -44,6 +44,14 @@ Push to GitHub for Render/Netlify auto-deploy:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-render-git.ps1
 ```
 
+Trigger Render directly through the Render API:
+
+```powershell
+$env:RENDER_API_KEY="YOUR_RENDER_API_KEY"
+$env:RENDER_SERVICE_ID="YOUR_RENDER_SERVICE_ID"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\trigger-render-deploy.ps1 -ClearCache
+```
+
 Deploy one Netlify site directly:
 
 ```powershell
