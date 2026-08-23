@@ -5,6 +5,7 @@ const proxyHosts = new Set([
   'microfinance-backend-37jz.onrender.com',
   'microfinance-sooty.vercel.app',
   'microfinancelive.netlify.app',
+  'https://microfinance-backend-4j3p.onrender.com',
   'microfinanceapplive.netlify.app',
 ]);
 
