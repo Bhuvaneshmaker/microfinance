@@ -64,7 +64,7 @@ router.post('/login', async (req, res) => {
         role: user.role.name,
         branchId: user.branchId,
       },
-      process.env.JWT_SECRET || 'defaultsecret',
+      process.env.JWT_SECRET,
       {
         expiresIn: '12h',
       }
@@ -158,7 +158,7 @@ router.get('/refresh', auth, async (req, res) => {
         role: user.role.name,
         branchId: user.branchId,
       },
-      process.env.JWT_SECRET || 'defaultsecret',
+      process.env.JWT_SECRET,
       {
         expiresIn: '12h',
       }

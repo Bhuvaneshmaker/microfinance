@@ -1,6 +1,17 @@
 ﻿import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
+function resolveApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (!configuredUrl) {
+    return '/api';
+  }
+
+  const baseUrl = configuredUrl.replace(/\/+$/, '');
+  return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+}
+
+const api = axios.create({ baseURL: resolveApiBaseUrl() });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('microfinance_token');

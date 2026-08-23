@@ -1,6 +1,9 @@
+const dotenv = require('dotenv');
+
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth');
 const customersRoutes = require('./routes/customers');
 const loanProductsRoutes = require('./routes/loanProducts');
@@ -17,11 +20,60 @@ const expenseRecordsRoutes = require('./routes/expenseRecords');
 const { startNotificationWorker } = require('./helpers');
 const prisma = require('./prismaClient');
 
-dotenv.config();
 const app = express();
 const port = process.env.PORT || 4000;
 
-app.use(cors());
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://microfinanceapplive.netlify.app',
+];
+
+function normalizeOrigin(origin) {
+  return origin ? origin.replace(/\/+$/, '') : origin;
+}
+
+function parseOrigins(value) {
+  return value
+    ? value
+        .split(',')
+        .map((origin) => normalizeOrigin(origin.trim()))
+        .filter(Boolean)
+    : [];
+}
+
+function validateEnvironment() {
+  const required = ['DATABASE_URL', 'JWT_SECRET'];
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length) {
+    throw new Error(`Missing required environment variable(s): ${missing.join(', ')}`);
+  }
+
+  if (['defaultsecret', 'replace_with_secure_secret', 'replace_with_a_secure_random_secret'].includes(process.env.JWT_SECRET)) {
+    throw new Error('JWT_SECRET must be changed to a secure random value.');
+  }
+}
+
+const allowedOrigins = new Set([
+  ...defaultAllowedOrigins,
+  ...parseOrigins(process.env.FRONTEND_URL),
+  ...parseOrigins(process.env.CORS_ORIGIN),
+]);
+
+app.set('trust proxy', 1);
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has('*') || allowedOrigins.has(normalizeOrigin(origin))) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
+  })
+);
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
@@ -47,12 +99,28 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
 });
 
-app.listen(port, async () => {
+async function startServer() {
   try {
+    validateEnvironment();
     await prisma.$connect();
     startNotificationWorker();
-    console.log(`Backend server listening on http://localhost:${port}`);
+    app.listen(port, () => {
+      console.log(`Backend server listening on port ${port}`);
+    });
   } catch (error) {
     console.error('Failed to connect to database', error);
+    process.exit(1);
   }
+}
+
+process.on('SIGTERM', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+startServer();

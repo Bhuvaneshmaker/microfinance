@@ -4,10 +4,13 @@
   "private": true,
   "main": "src/index.js",
   "scripts": {
+    "build": "npx prisma generate",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "postinstall": "npx prisma generate",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev --name init",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js"
   },
   "dependencies": {
@@ -16,8 +19,9 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.1",
-    "prisma": "^6.16.3"
+    "jsonwebtoken": "^9.0.3",
+    "prisma": "^6.16.3",
+    "vercel": "^59.5.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
