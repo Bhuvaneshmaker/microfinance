@@ -6,12 +6,12 @@
   "scripts": {
     "build": "npx prisma generate",
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "start": "node dist/server.js",
     "postinstall": "npx prisma generate",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev --name init",
-    "prisma:migrate:deploy": "npx prisma migrate deploy",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed"
   },
   "dependencies": {
     "@prisma/client": "^6.16.3",
