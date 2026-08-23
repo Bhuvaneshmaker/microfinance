@@ -19,6 +19,58 @@ Commit and push the repository after these files are included:
 
 Do not deploy an old build that still contains `microfinance-sooty.vercel.app`.
 
+Terminal commands:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-deploy-ready.ps1
+git add .
+git commit -m "Fix production deployment"
+git push origin main
+```
+
+If Render and Netlify are connected to the GitHub repository, the `git push` starts the deploys automatically.
+
+## 1.1 Terminal Deploy Scripts
+
+Check everything before deploy:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-deploy-ready.ps1
+```
+
+Push to GitHub for Render/Netlify auto-deploy:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-render-git.ps1
+```
+
+Deploy one Netlify site directly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-netlify.ps1 -SiteId YOUR_NETLIFY_SITE_ID
+```
+
+Deploy two Netlify sites directly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-netlify.ps1 -SiteId FIRST_NETLIFY_SITE_ID
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-netlify.ps1 -SiteId SECOND_NETLIFY_SITE_ID -SkipBuild
+```
+
+Run checks, push Git, and optionally deploy Netlify sites:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-all.ps1 -NetlifySiteIds "FIRST_NETLIFY_SITE_ID","SECOND_NETLIFY_SITE_ID"
+```
+
+For direct Netlify CLI deploy, you need to log in first:
+
+```powershell
+npx --yes netlify-cli login
+```
+
+You can find each Netlify site ID in Netlify Dashboard > Site configuration > Site details > Site ID.
+
 ## 2. Deploy Backend On Render
 
 Recommended method: use the root `render.yaml` as a Render Blueprint.
