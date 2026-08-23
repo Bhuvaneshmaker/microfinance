@@ -1,49 +1,32 @@
 ﻿import axios from 'axios';
 
-const productionProxyUrl = '/api';
-const proxyHosts = new Set([
-    'https://microfinance-backend-4j3p.onrender.com',
-]);
+const PRODUCTION_API_URL =
+  'https://microfinance-backend-4j3p.onrender.com/api';
 
 function withApiPath(baseUrl) {
   const normalizedUrl = baseUrl.replace(/\/+$/, '');
-  return normalizedUrl.endsWith('/api') ? normalizedUrl : `${normalizedUrl}/api`;
-}
-
-function shouldUseProductionProxy(configuredUrl) {
-  if (!import.meta.env.PROD) {
-    return false;
-  }
-
-  if (!configuredUrl) {
-    return true;
-  }
-
-  const baseUrl = configuredUrl.replace(/\/+$/, '');
-
-  if (!baseUrl || baseUrl === productionProxyUrl) {
-    return true;
-  }
-
-  try {
-    const resolvedUrl = new URL(baseUrl, window.location.origin);
-    return proxyHosts.has(resolvedUrl.hostname);
-  } catch (error) {
-    return true;
-  }
+  return normalizedUrl.endsWith('/api')
+    ? normalizedUrl
+    : `${normalizedUrl}/api`;
 }
 
 function resolveApiBaseUrl() {
-  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
-
-  if (shouldUseProductionProxy(configuredUrl)) {
-    return productionProxyUrl;
+  // Always use Render directly in the production build.
+  if (import.meta.env.PROD) {
+    return PRODUCTION_API_URL;
   }
 
-  return withApiPath(configuredUrl || productionProxyUrl);
+  // Local development can use VITE_API_URL or the local proxy.
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+  return withApiPath(configuredUrl || '/api');
 }
 
-const api = axios.create({ baseURL: resolveApiBaseUrl() });
+const api = axios.create({
+  baseURL: resolveApiBaseUrl(),
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('microfinance_token');
