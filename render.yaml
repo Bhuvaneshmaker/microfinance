@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGIN
-        value: https://microfinanceapplive.netlify.app
+        value: https://microfinancelive.netlify.app,https://microfinanceapplive.netlify.app
       - key: DATABASE_URL
         fromDatabase:
           name: microfinance-postgres

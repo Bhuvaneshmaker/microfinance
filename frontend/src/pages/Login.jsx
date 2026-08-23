@@ -11,6 +11,14 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const getErrorMessage = (err) => {
+    if (!err.response) {
+      return 'Cannot reach the backend. Please check the /api proxy or Render backend.';
+    }
+
+    return err.response?.data?.error?.message || 'Login failed';
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError(null);
@@ -21,7 +29,7 @@ export default function Login() {
       login(response.user, response.token);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Login failed');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -34,13 +42,13 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="form-grid">
           <label>
             Username
-            <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
           </label>
           <label>
             Password
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
           </label>
-          {error && <div className="form-error">{error}</div>}
+          {error && <div className="form-error" role="alert" aria-live="polite">{error}</div>}
           <button type="submit" className="btn btn-primary" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>

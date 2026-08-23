@@ -1,14 +1,49 @@
 ﻿import axios from 'axios';
 
-function resolveApiBaseUrl() {
-  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+const productionProxyUrl = '/api';
+const proxyHosts = new Set([
+  'microfinance-backend-37jz.onrender.com',
+  'microfinance-sooty.vercel.app',
+  'microfinancelive.netlify.app',
+  'microfinanceapplive.netlify.app',
+]);
+
+function withApiPath(baseUrl) {
+  const normalizedUrl = baseUrl.replace(/\/+$/, '');
+  return normalizedUrl.endsWith('/api') ? normalizedUrl : `${normalizedUrl}/api`;
+}
+
+function shouldUseProductionProxy(configuredUrl) {
+  if (!import.meta.env.PROD) {
+    return false;
+  }
 
   if (!configuredUrl) {
-    return '/api';
+    return true;
   }
 
   const baseUrl = configuredUrl.replace(/\/+$/, '');
-  return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+
+  if (!baseUrl || baseUrl === productionProxyUrl) {
+    return true;
+  }
+
+  try {
+    const resolvedUrl = new URL(baseUrl, window.location.origin);
+    return proxyHosts.has(resolvedUrl.hostname);
+  } catch (error) {
+    return true;
+  }
+}
+
+function resolveApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim();
+
+  if (shouldUseProductionProxy(configuredUrl)) {
+    return productionProxyUrl;
+  }
+
+  return withApiPath(configuredUrl || productionProxyUrl);
 }
 
 const api = axios.create({ baseURL: resolveApiBaseUrl() });
