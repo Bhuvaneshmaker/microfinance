@@ -28,6 +28,7 @@ const defaultAllowedOrigins = [
   'http://127.0.0.1:5173',
   'https://microfinancelive.netlify.app',
   'https://microfinanceapplive.netlify.app',
+  'https://microfinance-iota.vercel.app',
 ];
 
 function normalizeOrigin(origin) {
